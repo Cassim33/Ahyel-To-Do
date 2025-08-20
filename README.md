@@ -1,4 +1,4 @@
-# Ahyel-To-Do
+# Ahyel-To-Do By kasimu Muhammad
 A toDo app for Ahyel cohort 1 fellows.
 # AHYEL COHORT 1 - To-Do List App
 
@@ -58,7 +58,7 @@ https://<your-username>.github.io/ahyel-cohort1-todo/
 
 ## 👨‍💻 Author
 
-**AHYEL COHORT 1**
+**Kasimu Muhammad**
 
 ---
 
