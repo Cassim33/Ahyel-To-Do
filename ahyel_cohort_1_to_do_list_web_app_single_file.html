@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AHYEL COHORT 1 — To‑Do</title>
+  <meta name="description" content="Responsive, modern To‑Do List web app for AHYEL COHORT 1 with add, edit, delete, complete, filters, and local storage." />
+  <link rel="manifest" href="data:application/json,{\"name\":\"AHYEL COHORT 1 To-Do\",\"short_name\":\"AHYEL TODO\",\"display\":\"standalone\",\"icons\":[]}" />
+  <style>
+    :root {
+      --bg: #0b1220;             /* page background */
+      --panel: #0f172a;          /* card background */
+      --border: #1f2a44;         /* subtle borders */
+      --text: #e6edf6;           /* primary text */
+      --muted: #9fb0c6;          /* secondary text */
+      --brand: #70e1ff;          /* accent color */
+      --brand-2: #ffd166;        /* secondary accent */
+      --danger: #ff6b6b;
+      --success: #34d399;
+      --shadow: 0 10px 30px rgba(0,0,0,.35);
+      --radius-xl: 18px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+      --focus: 0 0 0 3px rgba(112,225,255,.35);
+      --font: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji";
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f7fbff;
+        --panel: #ffffff;
+        --border: #e6eef7;
+        --text: #0f172a;
+        --muted: #56667e;
+        --shadow: 0 10px 30px rgba(2,15,32,.08);
+      }
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: var(--font);
+      color: var(--text);
+      background:
+        radial-gradient(1200px 600px at 10% 0%, rgba(112,225,255,.08), transparent 60%),
+        radial-gradient(1200px 600px at 100% 20%, rgba(255,209,102,.08), transparent 60%),
+        var(--bg);
+      display: grid;
+      place-items: start center;
+      padding: clamp(16px, 4vw, 32px);
+    }
+
+    .app {
+      width: min(880px, 100%);
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .header {
+      padding: 28px clamp(16px, 4vw, 32px) 20px;
+      border-bottom: 1px solid var(--border);
+      background:
+        linear-gradient(180deg, rgba(112,225,255,.10), transparent 45%),
+        linear-gradient(90deg, rgba(255,209,102,.10), transparent 55%);
+    }
+
+    .title {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .logo {
+      width: 40px; height: 40px;
+      display: grid; place-items: center;
+      background: linear-gradient(135deg, var(--brand), var(--brand-2));
+      border-radius: 12px;
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.35);
+      color: #07121f;
+      font-weight: 900;
+      letter-spacing: .5px;
+    }
+
+    h1 {
+      font-size: clamp(22px, 4vw, 28px);
+      line-height: 1.15;
+      margin: 0;
+      letter-spacing: .3px;
+    }
+
+    .subtitle {
+      margin: 6px 0 0;
+      color: var(--muted);
+      font-size: 14px;
+    }
+
+    .controls {
+      margin-top: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .filters {
+      display: flex; gap: 8px; flex-wrap: wrap;
+      background: color-mix(in oklab, var(--panel), #000 6%);
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 6px;
+    }
+
+    .chip {
+      appearance: none; border: none; cursor: pointer;
+      background: transparent; color: var(--muted);
+      padding: 8px 14px; border-radius: 999px;
+      font-weight: 600; letter-spacing: .2px;
+    }
+    .chip.active { background: rgba(112,225,255,.14); color: var(--text); }
+    .chip:focus-visible { outline: none; box-shadow: var(--focus); }
+
+    .counts { color: var(--muted); font-size: 14px; }
+
+    .composer {
+      padding: 18px clamp(16px, 4vw, 32px);
+      display: grid; gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .input-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      background: color-mix(in oklab, var(--panel), #000 6%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 14px;
+      color: var(--text);
+      font-size: 16px;
+    }
+    input[type="text"]::placeholder { color: var(--muted); }
+    input[type="text"]:focus { outline: none; box-shadow: var(--focus); }
+
+    .btn {
+      appearance: none; border: 1px solid transparent; cursor: pointer;
+      padding: 12px 16px; border-radius: var(--radius-md);
+      background: linear-gradient(180deg, color-mix(in oklab, var(--brand), #fff 10%), var(--brand));
+      color: #06202b; font-weight: 800; letter-spacing: .3px;
+      box-shadow: 0 4px 14px rgba(112,225,255,.3);
+    }
+    .btn:focus-visible { outline: none; box-shadow: var(--focus); }
+    .btn.secondary { background: transparent; color: var(--text); border-color: var(--border); box-shadow: none; }
+    .btn.danger { background: linear-gradient(180deg, color-mix(in oklab, var(--danger), #fff 10%), var(--danger)); color: white; box-shadow: 0 4px 14px rgba(255,107,107,.3); }
+
+    .list {
+      padding: 6px clamp(8px, 2vw, 16px) 24px;
+      display: grid; gap: 10px;
+      list-style: none; margin: 0;
+      max-height: min(60vh, 520px);
+      overflow: auto;
+    }
+
+    .item {
+      display: grid; align-items: center;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px; padding: 10px;
+      background: color-mix(in oklab, var(--panel), #000 6%);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      transition: transform .12s ease, background .2s ease;
+    }
+    .item:hover { transform: translateY(-1px); }
+
+    .checkbox {
+      width: 22px; height: 22px; border-radius: 6px;
+      display: grid; place-items: center; cursor: pointer;
+      background: #0b1325; border: 1px solid var(--border);
+    }
+    .checkbox svg { width: 16px; height: 16px; opacity: 0; transition: .15s ease; }
+    .item.completed .checkbox { background: #0e1b2f; border-color: color-mix(in oklab, var(--success), #000 25%); }
+    .item.completed .checkbox svg { opacity: 1; }
+
+    .text {
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .text.completed { color: var(--muted); text-decoration: line-through; }
+
+    .actions { display: flex; gap: 6px; }
+    .icon-btn {
+      background: transparent; border: 1px solid var(--border);
+      color: var(--text); border-radius: 10px; padding: 8px; cursor: pointer;
+      display: grid; place-items: center;
+    }
+    .icon-btn:focus-visible { outline: none; box-shadow: var(--focus); }
+    .icon-btn svg { width: 18px; height: 18px; }
+
+    .footer {
+      display: flex; gap: 10px; justify-content: space-between; align-items: center;
+      padding: 14px clamp(16px, 4vw, 32px);
+      border-top: 1px solid var(--border);
+      color: var(--muted);
+      flex-wrap: wrap;
+    }
+
+    .brand-note { font-size: 13px; }
+
+    /* Mobile niceties */
+    @media (max-width: 560px) {
+      .input-row { grid-template-columns: 1fr; }
+      .btn { width: 100%; }
+      .list { max-height: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="app" aria-labelledby="app-title">
+    <header class="header">
+      <div class="title">
+        <div class="logo" aria-hidden="true">A1</div>
+        <div>
+          <h1 id="app-title">AHYEL COHORT 1 — To‑Do</h1>
+          <p class="subtitle">Add, edit, complete, and manage tasks. Your list is saved automatically in your browser.</p>
+        </div>
+      </div>
+
+      <div class="controls" role="toolbar" aria-label="Filters and actions">
+        <div class="filters" role="tablist" aria-label="Task filters">
+          <button class="chip active" role="tab" aria-selected="true" data-filter="all">All</button>
+          <button class="chip" role="tab" aria-selected="false" data-filter="active">Pending</button>
+          <button class="chip" role="tab" aria-selected="false" data-filter="completed">Completed</button>
+        </div>
+        <div class="counts" aria-live="polite" id="counts">0 tasks</div>
+      </div>
+    </header>
+
+    <section class="composer" aria-label="Add a new task">
+      <form id="addForm" class="input-row" autocomplete="off">
+        <input id="todoInput" type="text" placeholder="What do you need to do? (e.g., Submit assignment)" aria-label="Task title" required minlength="1" />
+        <button class="btn" type="submit" aria-label="Add task">Add Task</button>
+      </form>
+      <button class="btn secondary" id="clearCompleted" type="button">Clear completed</button>
+    </section>
+
+    <ul id="list" class="list" aria-label="To‑Do items"></ul>
+
+    <footer class="footer">
+      <span class="brand-note">Built for <strong>AHYEL COHORT 1</strong>. Easily customize names/colors for future cohorts.</span>
+      <div>
+        <button class="btn secondary" id="exportBtn" type="button">Export</button>
+        <input type="file" id="importFile" accept="application/json" style="display:none" />
+        <button class="btn secondary" id="importBtn" type="button">Import</button>
+      </div>
+    </footer>
+  </main>
+
+  <template id="itemTemplate">
+    <li class="item" data-id="">
+      <button class="checkbox" aria-label="Toggle completed" title="Mark complete">
+        <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </button>
+      <div class="text" title=""></div>
+      <div class="actions">
+        <button class="icon-btn" data-action="edit" aria-label="Edit task" title="Edit">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+          </svg>
+        </button>
+        <button class="icon-btn" data-action="delete" aria-label="Delete task" title="Delete">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/>
+          </svg>
+        </button>
+      </div>
+    </li>
+  </template>
+
+  <script>
+    (() => {
+      const STORAGE_KEY = 'ahyel-cohort-1-todos-v1';
+      const FILTER_KEY = 'ahyel-cohort-1-filter-v1';
+
+      /** @type {{id:string,text:string,completed:boolean,created:number}[]} */
+      let todos = load();
+      let filter = loadFilter();
+
+      const els = {
+        list: document.getElementById('list'),
+        template: document.getElementById('itemTemplate'),
+        form: document.getElementById('addForm'),
+        input: document.getElementById('todoInput'),
+        counts: document.getElementById('counts'),
+        clearCompleted: document.getElementById('clearCompleted'),
+        filterChips: Array.from(document.querySelectorAll('.chip')),
+        exportBtn: document.getElementById('exportBtn'),
+        importBtn: document.getElementById('importBtn'),
+        importFile: document.getElementById('importFile'),
+      };
+
+      // Initialize UI
+      setActiveFilterChip(filter);
+      render();
+
+      // Add new todo
+      els.form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const text = els.input.value.trim();
+        if (!text) return;
+        todos.unshift({ id: crypto.randomUUID(), text, completed: false, created: Date.now() });
+        els.input.value = '';
+        persist();
+        render();
+        els.input.focus();
+      });
+
+      // Clear completed
+      els.clearCompleted.addEventListener('click', () => {
+        const hasCompleted = todos.some(t => t.completed);
+        if (!hasCompleted) return alert('No completed tasks to clear.');
+        if (confirm('Remove all completed tasks?')) {
+          todos = todos.filter(t => !t.completed);
+          persist();
+          render();
+        }
+      });
+
+      // Filter switching
+      els.filterChips.forEach(chip => chip.addEventListener('click', () => {
+        filter = chip.dataset.filter;
+        persistFilter();
+        setActiveFilterChip(filter);
+        render();
+      }));
+
+      // List interactions via event delegation
+      els.list.addEventListener('click', (e) => {
+        const item = e.target.closest('.item');
+        if (!item) return;
+        const id = item.dataset.id;
+
+        // Toggle completed
+        if (e.target.closest('.checkbox')) {
+          const t = todos.find(t => t.id === id);
+          if (t) { t.completed = !t.completed; persist(); render(); }
+          return;
+        }
+
+        // Action buttons
+        const btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        const action = btn.dataset.action;
+        if (action === 'delete') {
+          const t = todos.find(t => t.id === id);
+          if (t && confirm(`Delete task:\n\n${t.text}`)) {
+            todos = todos.filter(t => t.id !== id);
+            persist(); render();
+          }
+        } else if (action === 'edit') {
+          startEdit(item, id);
+        }
+      });
+
+      // Keyboard: Enter adds, ESC clears edit
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          const editing = document.querySelector('.item.editing');
+          if (editing) cancelEdit(editing);
+        }
+      });
+
+      // Export / Import
+      els.exportBtn.addEventListener('click', () => {
+        const blob = new Blob([JSON.stringify({
+          meta: { name: 'AHYEL COHORT 1 To-Do', exportedAt: new Date().toISOString(), version: 1 },
+          todos
+        }, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = Object.assign(document.createElement('a'), { href: url, download: 'ahyel-cohort-1-todos.json' });
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 2000);
+      });
+
+      els.importBtn.addEventListener('click', () => els.importFile.click());
+      els.importFile.addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        try {
+          const text = await file.text();
+          const data = JSON.parse(text);
+          if (!Array.isArray(data.todos)) throw new Error('Invalid file');
+          if (!confirm('This will replace your current list. Continue?')) return;
+          todos = data.todos.map(sanitizeTodo).filter(Boolean);
+          persist(); render();
+        } catch (err) {
+          alert('Import failed: ' + (err?.message || err));
+        } finally {
+          e.target.value = '';
+        }
+      });
+
+      function sanitizeTodo(t) {
+        if (!t || typeof t.text !== 'string') return null;
+        return {
+          id: typeof t.id === 'string' ? t.id : crypto.randomUUID(),
+          text: t.text.slice(0, 200),
+          completed: !!t.completed,
+          created: Number.isFinite(t.created) ? t.created : Date.now(),
+        };
+      }
+
+      function startEdit(itemEl, id) {
+        if (itemEl.classList.contains('editing')) return;
+        itemEl.classList.add('editing');
+        const todo = todos.find(t => t.id === id);
+        const textEl = itemEl.querySelector('.text');
+        const actions = itemEl.querySelector('.actions');
+
+        // Build editor controls
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.value = todo.text;
+        input.setAttribute('aria-label', 'Edit task');
+        input.style.width = '100%';
+        input.style.padding = '10px 12px';
+        input.style.borderRadius = '10px';
+        input.style.border = '1px solid var(--border)';
+        input.style.background = 'color-mix(in oklab, var(--panel), #000 6%)';
+        input.style.color = 'var(--text)';
+
+        const saveBtn = btnEl('Save', 'save');
+        const cancelBtn = btnEl('Cancel', 'cancel');
+
+        function btnEl(label, kind) {
+          const b = document.createElement('button');
+          b.className = 'icon-btn';
+          b.textContent = label;
+          b.dataset.action = kind;
+          return b;
+        }
+
+        // Replace UI
+        const originalText = textEl.textContent;
+        textEl.replaceWith(input);
+        actions.innerHTML = '';
+        actions.append(saveBtn, cancelBtn);
+        input.focus();
+        input.setSelectionRange(0, input.value.length);
+
+        actions.addEventListener('click', onActionClick);
+        input.addEventListener('keydown', onKey);
+
+        function onKey(e) {
+          if (e.key === 'Enter') doSave();
+          if (e.key === 'Escape') cancelEdit(itemEl);
+        }
+        function onActionClick(e) {
+          const a = e.target.closest('[data-action]')?.dataset.action;
+          if (a === 'save') doSave();
+          if (a === 'cancel') cancelEdit(itemEl);
+        }
+        function doSave() {
+          const newText = input.value.trim();
+          if (!newText) { alert('Task cannot be empty.'); return; }
+          todo.text = newText.slice(0, 200);
+          persist(); render();
+        }
+      }
+
+      function cancelEdit(itemEl) {
+        itemEl.classList.remove('editing');
+        render();
+      }
+
+      function render() {
+        // Render list
+        els.list.innerHTML = '';
+        const frag = document.createDocumentFragment();
+        const visible = todos.filter(t =>
+          filter === 'completed' ? t.completed : filter === 'active' ? !t.completed : true
+        );
+
+        visible.forEach(todo => {
+          const node = els.template.content.firstElementChild.cloneNode(true);
+          node.dataset.id = todo.id;
+          node.querySelector('.text').textContent = todo.text;
+          node.querySelector('.text').title = todo.text;
+          if (todo.completed) node.classList.add('completed');
+          if (todo.completed) node.querySelector('.text').classList.add('completed');
+          frag.appendChild(node);
+        });
+        els.list.appendChild(frag);
+
+        // Counts
+        const total = todos.length;
+        const completed = todos.filter(t => t.completed).length;
+        const active = total - completed;
+        els.counts.textContent = `${total} task${total!==1?'s':''} • ${active} pending • ${completed} completed`;
+
+        // Disable clear if nothing to clear
+        els.clearCompleted.disabled = completed === 0;
+        els.clearCompleted.style.opacity = completed === 0 ? .5 : 1;
+
+        // Persist after render to ensure consistency
+        persist();
+      }
+
+      function setActiveFilterChip(val) {
+        els.filterChips.forEach(c => {
+          const isActive = c.dataset.filter === val;
+          c.classList.toggle('active', isActive);
+          c.setAttribute('aria-selected', String(isActive));
+        });
+      }
+
+      function persist() { localStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); }
+      function load() {
+        try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }
+        catch { return []; }
+      }
+      function persistFilter() { localStorage.setItem(FILTER_KEY, filter); }
+      function loadFilter() { return localStorage.getItem(FILTER_KEY) || 'all'; }
+
+      // Accessibility: announce changes
+      const live = document.getElementById('counts');
+      const origSetItem = localStorage.setItem.bind(localStorage);
+      localStorage.setItem = (k, v) => { origSetItem(k, v); if (k === STORAGE_KEY) queueMicrotask(() => live.textContent = live.textContent); };
+
+      // Example seed (only if empty)
+      if (todos.length === 0) {
+        todos = [
+          { id: crypto.randomUUID(), text: 'Welcome to AHYEL COHORT 1 To‑Do!', completed: false, created: Date.now() },
+          { id: crypto.randomUUID(), text: 'Use the filter chips to view All / Pending / Completed', completed: false, created: Date.now() },
+          { id: crypto.randomUUID(), text: 'Click the pencil to edit, bin to delete, and the box to complete', completed: false, created: Date.now() }
+        ];
+        persist(); render();
+      }
+    })();
+  </script>
+</body>
+</html>
